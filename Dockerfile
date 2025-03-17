@@ -1,9 +1,10 @@
 FROM python:3.9-slim
 
-# Install Rust (required for biscuit-python)
+# Install Rust and Git (required for dependencies)
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
+    git \
     && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
