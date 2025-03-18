@@ -23,9 +23,10 @@ COPY . .
 
 # Set environment variables
 ENV FLASK_PORT=8000
+ENV PYTHONUNBUFFERED=1
 
 # Expose the port
 EXPOSE 8000
 
-# Run the application with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "main:create_app()"]
+# Run the application with gunicorn with proper logging
+CMD ["gunicorn", "--bind", "0.0.0.0:8000", "--log-level", "debug", "--access-logfile", "-", "--error-logfile", "-", "main:create_app()"]
