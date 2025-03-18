@@ -3,6 +3,7 @@ import os
 
 import dotenv
 from flask import Flask, jsonify, request
+from flask_cors import CORS
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from theoriq import AgentDeploymentConfiguration, ExecuteContext, ExecuteResponse
@@ -41,6 +42,18 @@ def execute(context: ExecuteContext, req: ExecuteRequestBody) -> ExecuteResponse
 
 def create_app():
     app = Flask(__name__)
+    
+    # Enable CORS
+    CORS(app, resources={
+        r"/*": {
+            "origins": [
+                "https://infinity.dev.theoriq.ai",
+                "https://infinity.theoriq.ai"
+            ],
+            "methods": ["GET", "POST", "OPTIONS"],
+            "allow_headers": ["Content-Type", "Authorization"]
+        }
+    })
     
     # Handle proxy headers
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
