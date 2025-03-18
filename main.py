@@ -2,7 +2,8 @@ import logging
 import os
 
 import dotenv
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 from theoriq import AgentDeploymentConfiguration, ExecuteContext, ExecuteResponse
 from theoriq.api.v1alpha2.schemas import ExecuteRequestBody
@@ -25,6 +26,7 @@ def execute(context: ExecuteContext, req: ExecuteRequestBody) -> ExecuteResponse
 
         # Core implementation of the Agent
         agent_result = f"Hello {text_value} from a Theoriq Agent!"
+        logger.info(f"Sending response: {agent_result}")
 
         # Wrapping the result into an `ExecuteResponse` with some helper functions on the Context
         return context.new_response(
@@ -39,6 +41,9 @@ def execute(context: ExecuteContext, req: ExecuteRequestBody) -> ExecuteResponse
 
 def create_app():
     app = Flask(__name__)
+    
+    # Handle proxy headers
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     # Logging
     logging.basicConfig(
@@ -50,13 +55,23 @@ def create_app():
     dotenv.load_dotenv()
     agent_config = AgentDeploymentConfiguration.from_env()
 
-    # Create and register theoriq blueprint with v1alpha2 api version
+    # Create and register theoriq blueprint with v1alpha2 api version at root path
     blueprint = theoriq_blueprint(agent_config, execute)
-    app.register_blueprint(blueprint)
+    app.register_blueprint(blueprint, url_prefix='')
 
     @app.route('/health')
     def health_check():
         return jsonify({"status": "healthy"})
+
+    @app.before_request
+    def log_request_info():
+        logger.info('Headers: %s', dict(request.headers))
+        logger.info('Body: %s', request.get_data())
+
+    @app.after_request
+    def after_request(response):
+        logger.info('Response: %s', response.get_data())
+        return response
 
     @app.errorhandler(404)
     def not_found(e):
