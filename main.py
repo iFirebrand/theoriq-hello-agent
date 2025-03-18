@@ -1,5 +1,6 @@
 import logging
 import os
+import urllib.parse
 
 import dotenv
 from flask import Flask, jsonify, request
@@ -48,7 +49,9 @@ def create_app():
         r"/*": {
             "origins": [
                 "https://infinity.dev.theoriq.ai",
-                "https://infinity.theoriq.ai"
+                "https://infinity.theoriq.ai",
+                "http://infinity.dev.theoriq.ai",
+                "http://infinity.theoriq.ai"
             ],
             "methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
@@ -68,13 +71,25 @@ def create_app():
     dotenv.load_dotenv()
     agent_config = AgentDeploymentConfiguration.from_env()
 
+    # Ensure THEORIQ_URI is properly formatted
+    theoriq_uri = os.environ.get('THEORIQ_URI', '')
+    if theoriq_uri:
+        parsed = urllib.parse.urlparse(theoriq_uri)
+        if not parsed.scheme:
+            theoriq_uri = f"http://{theoriq_uri}"
+        os.environ['THEORIQ_URI'] = theoriq_uri
+        logger.info(f"Using THEORIQ_URI: {theoriq_uri}")
+
     # Create and register theoriq blueprint with v1alpha2 api version at root path
     blueprint = theoriq_blueprint(agent_config, execute)
     app.register_blueprint(blueprint, url_prefix='')
 
     @app.route('/health')
     def health_check():
-        return jsonify({"status": "healthy"})
+        return jsonify({
+            "status": "healthy",
+            "theoriq_uri": os.environ.get('THEORIQ_URI')
+        })
 
     @app.before_request
     def log_request_info():
