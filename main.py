@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 def execute(context: ExecuteContext, req: ExecuteRequestBody) -> ExecuteResponse:
     try:
         logger.info(
-            f"Received request: {context.request_id} from {context.request_sender_type} {context.request_sender_address}"
+            f"Received request to echo: {context.request_id} from {context.request_sender_type} {context.request_sender_address}"
         )
 
         # Get the last `TextItemBlock` from the Dialog
